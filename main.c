@@ -6,6 +6,9 @@
 
 #include "polytris.h"
 
+#define NCOLORS 6
+#define GET_COLOR(n) ((n) % NCOLORS + 1)
+
 static void draw_piece(WINDOW *w, Point pt, Piece *p, chtype ch1, chtype ch2);
 static void draw_board(WINDOW *w, Point pt, short board[HGHT][WDTH], chtype ch1, chtype ch2);
 static void draw_stats(WINDOW *w, Point pt, PolytrisGame *pg);
@@ -33,8 +36,10 @@ draw_board(WINDOW *w, Point pt, short board[HGHT][WDTH], chtype ch1, chtype ch2)
 	for(i=0; i<HGHT; i++)
 		for(j=0; j<WDTH; j++)
 			if(board[i][j]){
-				mvwaddch(w, i+pt.y, j*2+pt.x, ch1|COLOR_PAIR(board[i][j]));
-				mvwaddch(w, i+pt.y, j*2+1+pt.x, ch2|COLOR_PAIR(board[i][j]));
+				mvwaddch(w, i+pt.y, j*2+pt.x,
+					ch1|COLOR_PAIR(GET_COLOR(board[i][j])));
+				mvwaddch(w, i+pt.y, j*2+1+pt.x,
+					ch2|COLOR_PAIR(GET_COLOR(board[i][j])));
 			}else
 				mvwprintw(w, i+pt.y, j*2+pt.x, "  ");
 	}else{
@@ -89,13 +94,8 @@ main(int argc, char *argv[])
 		int i;
 		start_color();
 		use_default_colors();
-		init_pair(1, COLOR_RED, 0);
-		init_pair(2, COLOR_GREEN, 0);
-		init_pair(3, COLOR_YELLOW, 0);
-		init_pair(4, COLOR_BLUE, 0);
-		init_pair(5, COLOR_MAGENTA, 0);
-		init_pair(6, COLOR_CYAN, 0);
-		init_pair(7, COLOR_WHITE, 0);
+		for(i=1; i<=NCOLORS; i++)
+			init_pair(i, i, 0);
 	}
 
 	win_left = newwin(21, 20, 0, 0);
@@ -113,16 +113,16 @@ main(int argc, char *argv[])
 		draw_board(win_middle, mkpt(0, 0), pg->board,
 			' '|A_REVERSE, ' '|A_REVERSE);
 		draw_piece(win_middle, ghost_pos(pg), pg->piece,
-			'['|COLOR_PAIR(pg->piece->color),
-			']'|COLOR_PAIR(pg->piece->color));
+			'['|COLOR_PAIR(GET_COLOR(pg->piece->color)),
+			']'|COLOR_PAIR(GET_COLOR(pg->piece->color)));
 		draw_piece(win_middle, pg->pos, pg->piece,
-			' '|A_REVERSE|COLOR_PAIR(pg->piece->color),
-			' '|A_REVERSE|COLOR_PAIR(pg->piece->color));
+			' '|A_REVERSE|COLOR_PAIR(GET_COLOR(pg->piece->color)),
+			' '|A_REVERSE|COLOR_PAIR(GET_COLOR(pg->piece->color)));
 
 		draw_piece(win_right, mkpt(2, 12), pg->piece, ' ', ' ');
 		draw_piece(win_right, mkpt(2, 12), pg->piece_next,
-			' '|A_REVERSE|COLOR_PAIR(pg->piece_next->color),
-			' '|A_REVERSE|COLOR_PAIR(pg->piece_next->color));
+			' '|A_REVERSE|COLOR_PAIR(GET_COLOR(pg->piece_next->color)),
+			' '|A_REVERSE|COLOR_PAIR(GET_COLOR(pg->piece_next->color)));
 
 		draw_stats(win_left, mkpt(2, 1), pg);
 
@@ -162,8 +162,8 @@ main(int argc, char *argv[])
 				draw_piece(win_left, mkpt(2, 12), pg->piece_held, ' ', ' ');
 			hold(pg);
 			draw_piece(win_left, mkpt(2, 12), pg->piece_held,
-			' '|A_REVERSE|COLOR_PAIR(pg->piece_held->color),
-			' '|A_REVERSE|COLOR_PAIR(pg->piece_held->color));
+			' '|A_REVERSE|COLOR_PAIR(GET_COLOR(pg->piece_held->color)),
+			' '|A_REVERSE|COLOR_PAIR(GET_COLOR(pg->piece_held->color)));
 			break;
 		case 'z':
 		case 'd':
@@ -196,22 +196,32 @@ main(int argc, char *argv[])
 		}
 	}
 end:
+	//draw everything one last time for the end screen
 	draw_board(win_middle, mkpt(0, 0), pg->board,
 		' '|A_REVERSE, ' '|A_REVERSE);
+	draw_piece(win_middle, ghost_pos(pg), pg->piece,
+		'['|COLOR_PAIR(GET_COLOR(pg->piece->color)),
+		']'|COLOR_PAIR(GET_COLOR(pg->piece->color)));
 	draw_piece(win_middle, pg->pos, pg->piece,
-		' '|A_REVERSE|COLOR_PAIR(pg->piece->color),
-		' '|A_REVERSE|COLOR_PAIR(pg->piece->color));
+		' '|A_REVERSE|COLOR_PAIR(GET_COLOR(pg->piece->color)),
+		' '|A_REVERSE|COLOR_PAIR(GET_COLOR(pg->piece->color)));
+	draw_piece(win_right, mkpt(2, 12), pg->piece, ' ', ' ');
+	draw_piece(win_right, mkpt(2, 12), pg->piece_next,
+		' '|A_REVERSE|COLOR_PAIR(GET_COLOR(pg->piece_next->color)),
+		' '|A_REVERSE|COLOR_PAIR(GET_COLOR(pg->piece_next->color)));
+	draw_stats(win_left, mkpt(2, 1), pg);
 	wattron(win_middle, A_REVERSE);
 	mvwhline(win_middle, 10, 0, '-', 20);
 	mvwprintw(win_middle, 10, WDTH-4, "gameover");
 	wattroff(win_middle, A_REVERSE);
-	wrefresh(win_middle);
+	wnoutrefresh(win_middle);
+	doupdate();
 	nodelay(stdscr, FALSE);
 	getch();
 	endwin();
 	time_end = time(NULL);
-	printf("time: %ld\nscore: %ld\nlevel: %d\nlines: %d\n",
-		time_end-time_start, pg->score, pg->level, pg->lines);
+	printf("player: %s\nscore: %ld\ntime: %ld\nlevel: %d\nlines: %d\n",
+		getenv("USER"), pg->score, time_end-time_start, pg->level, pg->lines);
 	polytris_destroy(pg);
 	exit(EXIT_SUCCESS);
 }

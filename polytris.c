@@ -180,7 +180,7 @@ rotate(PolytrisGame *pg, int left)
 		rfunc = rotl;
 	else
 		rfunc = rotr;
-	for(i=0; i<NELEM(kicks); i++){
+	for(i=0; i<(int) NELEM(kicks); i++){
 		pt.x = pg->pos.x + kicks[i].x;
 		pt.y = pg->pos.y + kicks[i].y;
 		p = rfunc(pg->piece);
