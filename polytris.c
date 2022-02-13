@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
 #include "polytris.h"
 
 #define BEGINX 3
@@ -9,7 +8,9 @@
 #define DELAY 500
 #define NELEM(a) (sizeof(a)/sizeof(a[0]))
 
-const int levels[MAXLVL] = {1000,793,618,473,355,262,190,135,94,64,43,28,18,11,7};
+const int levels[MAXLVL] = {
+	1000,793,618,473,355,262,190,135,94,64,43,28,18,11,7
+};
 
 void mleft(PolytrisGame *pg);
 void mright(PolytrisGame *pg);
@@ -17,15 +18,14 @@ void mdown(PolytrisGame *pg);
 void rleft(PolytrisGame *pg);
 void rright(PolytrisGame *pg);
 void hold(PolytrisGame *pg);
-void drop(PolytrisGame *pg);
+int drop(PolytrisGame *pg);
 void polytris_destroy(PolytrisGame *pg);
 int polytris_tick(PolytrisGame *pg, int dt);
 Point mkpt(int x, int y);
 Point ghost_pos(PolytrisGame *pg);
 Piece *new_piece(void);
 PolytrisGame *polytris_create(long seed);
-int collide(Point pt, Piece *p, short board[HGHT][WDTH]);
-
+static int collide(Point pt, Piece *p, short board[HGHT][WDTH]);
 static Piece *rotr(Piece *p);
 static Piece *rotl(Piece *p);
 static void polytris_init(PolytrisGame *pg);
@@ -46,7 +46,7 @@ full_line(int y, short board[HGHT][WDTH])
 	return 1;
 }
 
-/* shift_lines: modifies board; shifts all lines above y down by one */ 
+/* shift_lines: modifies board; shifts all lines above y down by one */
 static void
 shift_lines(int y, short board[HGHT][WDTH])
 {
@@ -111,15 +111,6 @@ mright(PolytrisGame *pg)
 }
 
 void
-mdown(PolytrisGame *pg)
-{
-	if(!collide(mkpt(pg->pos.x, pg->pos.y+1), pg->piece, pg->board)){
-		pg->pos.y++; pg->score++;
-	}
-	pg->time_until_fall = levels[pg->level % MAXLVL];
-}
-
-void
 rleft(PolytrisGame *pg)
 {
 	rotate(pg, 1);
@@ -131,7 +122,17 @@ rright(PolytrisGame *pg)
 	rotate(pg, 0);
 }
 
-/* hold: swaps piece and held_piece if held_piece is empty then it gets a new piece */
+/* mdown: move the piece down one line reset timers */
+void
+mdown(PolytrisGame *pg)
+{
+	if(!collide(mkpt(pg->pos.x, pg->pos.y+1), pg->piece, pg->board)){
+		pg->pos.y++; pg->score++;
+	}
+	pg->time_until_fall = levels[pg->level % MAXLVL];
+}
+
+/* hold: swaps piece and held_piece */
 void
 hold(PolytrisGame *pg)
 {
@@ -151,8 +152,8 @@ hold(PolytrisGame *pg)
 	pg->time_until_fall = pg->time_until_lock = DELAY;
 }
 
-/* drop: drops the piece down as low as it can then locks it into place */
-void
+/* drop: drops the piece down, locks it into place, and checks for gameover */
+int
 drop(PolytrisGame *pg)
 {
 	//move down until we hit the floor or a block
@@ -166,6 +167,9 @@ drop(PolytrisGame *pg)
 	pg->time_until_fall = pg->time_until_lock = DELAY;
 	pg->piece = pg->piece_next;
 	pg->piece_next = new_piece();
+	if(collide(pg->pos, pg->piece, pg->board))
+		return 1;
+	return 0;
 }
 
 /* rotate: rotate the falling piece left or right */
@@ -193,7 +197,7 @@ rotate(PolytrisGame *pg, int left)
 	}
 }
 
-/* rotr/rotl: returns the corresponding rotation of a piece via pointer arithmetic */
+/* rotr/rotl: returns the corresponding rotation of a piece */
 static Piece *
 rotr(Piece *p)
 {
@@ -211,7 +215,7 @@ rotl(Piece *p)
 }
 
 /* collide: returns true if we have a collision */
-int
+static int
 collide(Point pt, Piece *p, short board[HGHT][WDTH])
 {
 	int i;
@@ -242,7 +246,7 @@ lockdown(Point pt, Piece *p, short board[HGHT][WDTH])
 int
 polytris_tick(PolytrisGame *pg, int dt)
 {
-	//we want to fall consistently
+	/* we want to fall consistently */
 	if(pg->time_until_fall >= 0){
 		pg->time_until_fall -= dt;
 	}else{
@@ -250,7 +254,8 @@ polytris_tick(PolytrisGame *pg, int dt)
 			pg->pos.y++;
 		pg->time_until_fall = levels[pg->level % MAXLVL];
 	}
-	//we only keep track of time_until_lock while the falling piece touches the floor or a block below
+	/* we only keep track of time_until_lock while the falling piece touches
+	 * the floor or a block below */
 	if(collide(mkpt(pg->pos.x, pg->pos.y+1), pg->piece, pg->board)){
 		if(pg->time_until_lock >= 0){
 			pg->time_until_lock -= dt;

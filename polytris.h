@@ -1,8 +1,8 @@
 #define WDTH 10
 #define HGHT 20
 #define MAXPTS 5
-#define NPIECES 27
 #define MAXLVL 15
+#define NPIECES 27
 #define LVLGOAL 5
 
 typedef struct Point Point;
@@ -35,12 +35,11 @@ void mdown(PolytrisGame *pg);
 void rleft(PolytrisGame *pg);
 void rright(PolytrisGame *pg);
 void hold(PolytrisGame *pg);
-void drop(PolytrisGame *pg);
+int drop(PolytrisGame *pg);
 void polytris_destroy(PolytrisGame *pg);
 int polytris_tick(PolytrisGame *pg, int dt);
 Point mkpt(int x, int y);
 Point ghost_pos(PolytrisGame *pg);
 Piece *new_piece(void);
 PolytrisGame *polytris_create(long seed);
-int collide(Point pt, Piece *p, short board[HGHT][WDTH]);
 
