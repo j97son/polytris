@@ -7,7 +7,7 @@
 #include <time.h>
 #include "polytris.h"
 
-#define NCOLORS 6
+#define NCOLORS 12
 
 static void draw_piece(WINDOW *w, Point pt, Piece *p, chtype ch1, chtype ch2);
 static void draw_board_mono(WINDOW *w, Point pt, short board[HGHT][WDTH],
@@ -16,20 +16,12 @@ static void draw_board_color(WINDOW *w, Point pt, short board[HGHT][WDTH],
 	chtype ch1, chtype ch2);
 static void draw_stats(WINDOW *w, Point pt, PolytrisGame *pg);
 static short get_pair(Piece *p);
-static short get_ghost_pair(Piece *p);
 
 /* get_pair: return the color pair number for the piece given */
 static short
 get_pair(Piece *p)
 {
 	return p->color % NCOLORS+1;
-}
-
-/* get_ghost_pair: return the color pair number for the ghost piece given */
-static short
-get_ghost_pair(Piece *p)
-{
-	return p->color % NCOLORS+NCOLORS+1;
 }
 
 /* draw_piece: draw a piece at pt in the window given */
@@ -62,6 +54,7 @@ draw_board_mono(WINDOW *w, Point pt, short board[HGHT][WDTH],
 				mvwprintw(w, i+pt.y, j*2+pt.x, "  ");
 	wnoutrefresh(w);
 }
+
 /* color version */
 static void
 draw_board_color(WINDOW *w, Point pt, short board[HGHT][WDTH],
@@ -113,24 +106,29 @@ main(int argc, char *argv[])
 	setlocale(LC_ALL, "");
 	/* curses setup */
 	initscr();
+	//assumes 16 colors
 	if(has_colors()){
 		start_color();
 		use_default_colors();
+
 		draw_board = draw_board_color;
-		/* for the normal pieces */
-		init_pair(1, COLOR_RED, COLOR_WHITE);
-		init_pair(2, COLOR_GREEN, COLOR_WHITE);
-		init_pair(3, COLOR_YELLOW, COLOR_WHITE);
-		init_pair(4, COLOR_BLUE, COLOR_WHITE);
-		init_pair(5, COLOR_MAGENTA, COLOR_WHITE);
-		init_pair(6, COLOR_CYAN, COLOR_WHITE);
-		/* for the ghost pieces */
-		init_pair(7, COLOR_RED, 0);
-		init_pair(8, COLOR_GREEN, 0);
-		init_pair(9, COLOR_YELLOW, 0);
-		init_pair(10, COLOR_BLUE, 0);
-		init_pair(11, COLOR_MAGENTA, 0);
-		init_pair(12, COLOR_CYAN, 0);
+
+		init_pair(1, 1, 15);
+		init_pair(2, 2, 15);
+		init_pair(3, 3, 15);
+		init_pair(4, 4, 15);
+		init_pair(5, 5, 15);
+		init_pair(6, 6, 15);
+
+		init_pair(7, 9, 15);
+		init_pair(8, 10, 15);
+		init_pair(9, 11, 8);
+		init_pair(10, 12, 15);
+		init_pair(11, 13, 15);
+		init_pair(12, 14, 15);
+
+		init_pair(13, 8, 0);
+		init_pair(14, 15, 0);
 	}
 	cbreak();
 	noecho();
@@ -139,13 +137,13 @@ main(int argc, char *argv[])
 	keypad(stdscr, TRUE);
 	nodelay(stdscr, TRUE);
 
-	win_left = newwin(21, 20, 0, 0);
-	win_middle = newwin(21, 20, 0, 20);
-	win_right = newwin(21, 20, 0, 40);
+	win_left = newwin(30, 20, 0, 0);
+	win_middle = newwin(HGHT+1, WDTH*2, 0, 20);
+	win_right = newwin(30, 20, 0, 20+WDTH*2);
 
-	wborder(win_left, ' ', '|', ' ', ' ', ' ', '|', ' ', '=');
-	wborder(win_middle, ' ', ' ', ' ', '=', ' ', ' ', '=', '=');
-	wborder(win_right, '|', ' ', ' ', ' ', '|', ' ', '=', ' ');
+	mvwvline(win_left, 0, 19, '|', HGHT+1);
+	mvwhline(win_middle, HGHT, 0, '=', WDTH*2);
+	mvwvline(win_right, 0, 0, '|', HGHT+1);
 	mvwprintw(win_right, 10, 4, "next:");
 	mvwprintw(win_left, 10, 4, "held:");
 	refresh();
@@ -155,8 +153,8 @@ main(int argc, char *argv[])
 		draw_board(win_middle, mkpt(0, 0), pg->board,
 			' '|A_REVERSE, '`'|A_REVERSE);
 		draw_piece(win_middle, ghost_pos(pg), pg->piece,
-			'['|COLOR_PAIR(get_ghost_pair(pg->piece)),
-			']'|COLOR_PAIR(get_ghost_pair(pg->piece)));
+			'['|COLOR_PAIR(13),
+			']'|COLOR_PAIR(13));
 		draw_piece(win_middle, pg->pos, pg->piece,
 			' '|A_REVERSE|COLOR_PAIR(get_pair(pg->piece)),
 			'`'|A_REVERSE|COLOR_PAIR(get_pair(pg->piece)));
@@ -176,18 +174,18 @@ main(int argc, char *argv[])
 		case 'p':
 			/* pause */
 			draw_board_mono(win_middle, mkpt(0, 0), pg->board, ' ', ' ');
-			wattron(win_middle, A_REVERSE);
-			mvwhline(win_middle, 10, 0, '-', 20);
-			mvwprintw(win_middle, 10, WDTH-3, "paused");
-			wattroff(win_middle, A_REVERSE);
+			wattron(win_middle, A_REVERSE|COLOR_PAIR(14));
+			mvwhline(win_middle, HGHT/2, 0, '-', WDTH*2);
+			mvwprintw(win_middle, HGHT/2, WDTH-3, "paused");
+			wattroff(win_middle, A_REVERSE|COLOR_PAIR(14));
 			wrefresh(win_middle);
 			nodelay(stdscr, FALSE);
 			while(getch() == KEY_RESIZE);	//stay paused while resizing
 			nodelay(stdscr, TRUE);
-			//got to do a lot of redrawing just in case the term is resized
-			wborder(win_left, ' ', '|', ' ', ' ', ' ', '|', ' ', '=');
-			wborder(win_middle, ' ', ' ', ' ', '=', ' ', ' ', '=', '=');
-			wborder(win_right, '|', ' ', ' ', ' ', '|', ' ', '=', ' ');
+			/* got to do a lot of redrawing just in case the term is resized */
+			mvwvline(win_left, 0, 19, '|', HGHT+1);
+			mvwhline(win_middle, HGHT, 0, '=', WDTH*2);
+			mvwvline(win_right, 0, 0, '|', HGHT+1);
 			mvwprintw(win_right, 10, 4, "next:");
 			mvwprintw(win_left, 10, 4, "held:");
 			refresh();
@@ -200,12 +198,14 @@ main(int argc, char *argv[])
 		case 's':
 		case 'g':
 			//erase the last held piece if there is one
-			if(pg->piece_held != NULL)
-				draw_piece(win_left, mkpt(2, 12), pg->piece_held, ' ', ' ');
-			hold(pg);
-			draw_piece(win_left, mkpt(2, 12), pg->piece_held,
-			' '|A_REVERSE|COLOR_PAIR(get_pair(pg->piece_held)),
-			'`'|A_REVERSE|COLOR_PAIR(get_pair(pg->piece_held)));
+			if(pg->holds < 3){
+				if(pg->piece_held != NULL)
+					draw_piece(win_left, mkpt(2, 12), pg->piece_held, ' ', ' ');
+				hold(pg);
+				draw_piece(win_left, mkpt(2, 12), pg->piece_held,
+				' '|A_REVERSE|COLOR_PAIR(get_pair(pg->piece_held)),
+				'`'|A_REVERSE|COLOR_PAIR(get_pair(pg->piece_held)));
+			}
 			break;
 		case 'z':
 		case 'd':
@@ -241,8 +241,8 @@ end:
 	draw_board(win_middle, mkpt(0, 0), pg->board,
 		' '|A_REVERSE, '`'|A_REVERSE);
 	draw_piece(win_middle, ghost_pos(pg), pg->piece,
-		'['|COLOR_PAIR(get_ghost_pair(pg->piece)),
-		']'|COLOR_PAIR(get_ghost_pair(pg->piece)));
+		'['|COLOR_PAIR(13),
+		']'|COLOR_PAIR(13));
 	draw_piece(win_middle, pg->pos, pg->piece,
 		' '|A_REVERSE|COLOR_PAIR(get_pair(pg->piece)),
 		'`'|A_REVERSE|COLOR_PAIR(get_pair(pg->piece)));
@@ -253,10 +253,10 @@ end:
 		'`'|A_REVERSE|COLOR_PAIR(get_pair(pg->piece_next)));
 
 	draw_stats(win_left, mkpt(2, 1), pg);
-	wattron(win_middle, A_REVERSE);
-	mvwhline(win_middle, 10, 0, '-', 20);
-	mvwprintw(win_middle, 10, WDTH-4, "gameover");
-	wattroff(win_middle, A_REVERSE);
+	wattron(win_middle, A_REVERSE|COLOR_PAIR(14));
+	mvwhline(win_middle, HGHT/2, 0, '-', WDTH*2);
+	mvwprintw(win_middle, HGHT/2, WDTH-4, "gameover");
+	wattroff(win_middle, A_REVERSE|COLOR_PAIR(14));
 	wnoutrefresh(win_middle);
 	doupdate();
 	nodelay(stdscr, FALSE);

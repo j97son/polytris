@@ -1,5 +1,5 @@
-#define WDTH 10
-#define HGHT 20
+#define WDTH 12
+#define HGHT 21
 #define MAXPTS 5
 #define MAXLVL 15
 #define NPIECES 27
@@ -20,7 +20,7 @@ struct Piece{
 typedef struct PolytrisGame PolytrisGame;
 struct PolytrisGame{
 	long score;
-	int lines, level, goal;
+	int lines, level, goal, holds;
 	int time_until_fall, time_until_lock;
 	short board[HGHT][WDTH];
 	Point pos;

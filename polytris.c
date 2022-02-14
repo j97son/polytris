@@ -3,7 +3,7 @@
 #include <string.h>
 #include "polytris.h"
 
-#define BEGINX 3
+#define BEGINX WDTH/2-2
 #define BEGINY 0
 #define DELAY 500
 #define NELEM(a) (sizeof(a)/sizeof(a[0]))
@@ -136,7 +136,6 @@ mdown(PolytrisGame *pg)
 void
 hold(PolytrisGame *pg)
 {
-	//if can hold
 	if(pg->piece_held != NULL){
 		Piece *tmp;
 		tmp = pg->piece_held;
@@ -147,6 +146,7 @@ hold(PolytrisGame *pg)
 		pg->piece = pg->piece_next;
 		pg->piece_next = new_piece();
 	}
+	pg->holds++;
 	pg->piece_held -= pg->piece_held->rot;
 	pg->pos.x = BEGINX; pg->pos.y = BEGINY;
 	pg->time_until_fall = pg->time_until_lock = DELAY;
@@ -164,6 +164,7 @@ drop(PolytrisGame *pg)
 	lockdown(pg->pos, pg->piece, pg->board);
 	remove_lines(pg);
 	pg->pos.x = BEGINX; pg->pos.y = BEGINY;
+	pg->holds = 0;
 	pg->time_until_fall = pg->time_until_lock = DELAY;
 	pg->piece = pg->piece_next;
 	pg->piece_next = new_piece();
@@ -262,6 +263,7 @@ polytris_tick(PolytrisGame *pg, int dt)
 		}else{
 			lockdown(pg->pos, pg->piece, pg->board);
 			remove_lines(pg);
+			pg->holds = 0;
 			pg->pos.x = BEGINX; pg->pos.y = BEGINY;
 			pg->time_until_fall = pg->time_until_lock = DELAY;
 			pg->piece = pg->piece_next;
