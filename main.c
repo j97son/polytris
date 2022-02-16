@@ -7,7 +7,7 @@
 #include <time.h>
 #include "polytris.h"
 
-#define NCOLORS 12
+int ncolors;
 
 static void draw_piece(WINDOW *w, Point pt, Piece *p, chtype ch1, chtype ch2);
 static void draw_board_mono(WINDOW *w, Point pt, short board[HGHT][WDTH],
@@ -16,13 +16,6 @@ static void draw_board_color(WINDOW *w, Point pt, short board[HGHT][WDTH],
 	chtype ch1, chtype ch2);
 static void draw_stats(WINDOW *w, Point pt, PolytrisGame *pg);
 static short get_pair(Piece *p);
-
-/* get_pair: return the color pair number for the piece given */
-static short
-get_pair(Piece *p)
-{
-	return p->color % NCOLORS+1;
-}
 
 /* draw_piece: draw a piece at pt in the window given */
 static void
@@ -65,9 +58,9 @@ draw_board_color(WINDOW *w, Point pt, short board[HGHT][WDTH],
 		for(j=0; j<WDTH; j++)
 			if(board[i][j]){
 				mvwaddch(w, i+pt.y, j*2+pt.x,
-					ch1|COLOR_PAIR(board[i][j] % NCOLORS+1));
+					ch1|COLOR_PAIR(board[i][j] % ncolors+1));
 				mvwaddch(w, i+pt.y, j*2+1+pt.x,
-					ch2|COLOR_PAIR(board[i][j] % NCOLORS+1));
+					ch2|COLOR_PAIR(board[i][j] % ncolors+1));
 			}else
 				mvwprintw(w, i+pt.y, j*2+pt.x, "  ");
 	wnoutrefresh(w);
@@ -83,14 +76,60 @@ draw_stats(WINDOW *w, Point pt, PolytrisGame *pg)
 	wnoutrefresh(w);
 }
 
+/* get_pair: return the color pair number for the piece given */
+static short
+get_pair(Piece *p)
+{
+	return p->color % ncolors + 1;
+}
+
+/* init_polytris_colors: set up colors based on how many the term supports */
+void
+init_polytris_colors(void)
+{
+	start_color();
+	use_default_colors();
+	if(COLORS < 16){
+		init_pair(1, 7, 1);
+		init_pair(2, 7, 2);
+		init_pair(3, 7, 3);
+		init_pair(4, 7, 4);
+		init_pair(5, 7, 5);
+		init_pair(6, 7, 6);
+		init_pair(7, -1, -1);
+		ncolors = 6;
+	}else{
+		//bright yellow is just a bit too bright
+		if(can_change_color()){
+			short r, g, b;
+			color_content(11, &r, &g, &b);
+			init_color(11, r-200, g-200, b);
+		}
+		init_pair(1, 15, 1);
+		init_pair(2, 15, 2);
+		init_pair(3, 15, 3);
+		init_pair(4, 15, 4);
+		init_pair(5, 15, 5);
+		init_pair(6, 15, 6);
+		init_pair(7, 15, 9);
+		init_pair(8, 15, 10);
+		init_pair(9, 15, 11);
+		init_pair(10, 15, 12);
+		init_pair(11, 15, 13);
+		init_pair(12, 15, 14);
+		init_pair(13, 8, -1);
+		ncolors = 12;
+	}
+}
+
 #define dt 34
 /* main: run the game loop & handle io */
 int
 main(int argc, char *argv[])
 {
-	WINDOW *win_left, *win_middle, *win_right;
-	long time_start, time_end;
 	void (*draw_board)(WINDOW *, Point, short [HGHT][WDTH], chtype, chtype);
+	long time_start, time_end;
+	WINDOW *win_left, *win_middle, *win_right;
 	PolytrisGame *pg;
 
 	time_start = time(NULL);
@@ -106,29 +145,9 @@ main(int argc, char *argv[])
 	setlocale(LC_ALL, "");
 	/* curses setup */
 	initscr();
-	//assumes 16 colors
 	if(has_colors()){
-		start_color();
-		use_default_colors();
-
+		init_polytris_colors();
 		draw_board = draw_board_color;
-
-		init_pair(1, 1, 15);
-		init_pair(2, 2, 15);
-		init_pair(3, 3, 15);
-		init_pair(4, 4, 15);
-		init_pair(5, 5, 15);
-		init_pair(6, 6, 15);
-
-		init_pair(7, 9, 15);
-		init_pair(8, 10, 15);
-		init_pair(9, 11, 8);
-		init_pair(10, 12, 15);
-		init_pair(11, 13, 15);
-		init_pair(12, 14, 15);
-
-		init_pair(13, 8, 0);
-		init_pair(14, 15, 0);
 	}
 	cbreak();
 	noecho();
@@ -151,18 +170,18 @@ main(int argc, char *argv[])
 	while(polytris_tick(pg, dt)){
 		/* slightly lengthy func calls */
 		draw_board(win_middle, mkpt(0, 0), pg->board,
-			' '|A_REVERSE, '`'|A_REVERSE);
+			' ', '`');
 		draw_piece(win_middle, ghost_pos(pg), pg->piece,
-			'['|COLOR_PAIR(13),
-			']'|COLOR_PAIR(13));
+			'['|COLOR_PAIR(ncolors+1),
+			']'|COLOR_PAIR(ncolors+1));
 		draw_piece(win_middle, pg->pos, pg->piece,
-			' '|A_REVERSE|COLOR_PAIR(get_pair(pg->piece)),
-			'`'|A_REVERSE|COLOR_PAIR(get_pair(pg->piece)));
+			' '|COLOR_PAIR(get_pair(pg->piece)),
+			'`'|COLOR_PAIR(get_pair(pg->piece)));
 
 		draw_piece(win_right, mkpt(2, 12), pg->piece, ' ', ' ');
 		draw_piece(win_right, mkpt(2, 12), pg->piece_next,
-			' '|A_REVERSE|COLOR_PAIR(get_pair(pg->piece_next)),
-			'`'|A_REVERSE|COLOR_PAIR(get_pair(pg->piece_next)));
+			' '|COLOR_PAIR(get_pair(pg->piece_next)),
+			'`'|COLOR_PAIR(get_pair(pg->piece_next)));
 
 		draw_stats(win_left, mkpt(2, 1), pg);
 
@@ -173,11 +192,12 @@ main(int argc, char *argv[])
 		case KEY_F(1):
 		case 'p':
 			/* pause */
+			//pause();
 			draw_board_mono(win_middle, mkpt(0, 0), pg->board, ' ', ' ');
-			wattron(win_middle, A_REVERSE|COLOR_PAIR(14));
+			wattron(win_middle, A_REVERSE);
 			mvwhline(win_middle, HGHT/2, 0, '-', WDTH*2);
 			mvwprintw(win_middle, HGHT/2, WDTH-3, "paused");
-			wattroff(win_middle, A_REVERSE|COLOR_PAIR(14));
+			wattroff(win_middle, A_REVERSE);
 			wrefresh(win_middle);
 			nodelay(stdscr, FALSE);
 			while(getch() == KEY_RESIZE);	//stay paused while resizing
@@ -197,14 +217,14 @@ main(int argc, char *argv[])
 		case 'c':
 		case 's':
 		case 'g':
-			//erase the last held piece if there is one
 			if(pg->holds < 3){
+				/* erase the last held piece if there is one */
 				if(pg->piece_held != NULL)
 					draw_piece(win_left, mkpt(2, 12), pg->piece_held, ' ', ' ');
 				hold(pg);
 				draw_piece(win_left, mkpt(2, 12), pg->piece_held,
-				' '|A_REVERSE|COLOR_PAIR(get_pair(pg->piece_held)),
-				'`'|A_REVERSE|COLOR_PAIR(get_pair(pg->piece_held)));
+				' '|COLOR_PAIR(get_pair(pg->piece_held)),
+				'`'|COLOR_PAIR(get_pair(pg->piece_held)));
 			}
 			break;
 		case 'z':
@@ -239,24 +259,24 @@ main(int argc, char *argv[])
 end:
 	/* draw everything one last time for the end screen */
 	draw_board(win_middle, mkpt(0, 0), pg->board,
-		' '|A_REVERSE, '`'|A_REVERSE);
+		' ', '`');
 	draw_piece(win_middle, ghost_pos(pg), pg->piece,
-		'['|COLOR_PAIR(13),
-		']'|COLOR_PAIR(13));
+		'['|COLOR_PAIR(ncolors+1),
+		']'|COLOR_PAIR(ncolors+1));
 	draw_piece(win_middle, pg->pos, pg->piece,
-		' '|A_REVERSE|COLOR_PAIR(get_pair(pg->piece)),
-		'`'|A_REVERSE|COLOR_PAIR(get_pair(pg->piece)));
+		' '|COLOR_PAIR(get_pair(pg->piece)),
+		'`'|COLOR_PAIR(get_pair(pg->piece)));
 
 	draw_piece(win_right, mkpt(2, 12), pg->piece, ' ', ' ');
 	draw_piece(win_right, mkpt(2, 12), pg->piece_next,
-		' '|A_REVERSE|COLOR_PAIR(get_pair(pg->piece_next)),
-		'`'|A_REVERSE|COLOR_PAIR(get_pair(pg->piece_next)));
+		' '|COLOR_PAIR(get_pair(pg->piece_next)),
+		'`'|COLOR_PAIR(get_pair(pg->piece_next)));
 
 	draw_stats(win_left, mkpt(2, 1), pg);
-	wattron(win_middle, A_REVERSE|COLOR_PAIR(14));
+	wattron(win_middle, A_REVERSE);
 	mvwhline(win_middle, HGHT/2, 0, '-', WDTH*2);
 	mvwprintw(win_middle, HGHT/2, WDTH-4, "gameover");
-	wattroff(win_middle, A_REVERSE|COLOR_PAIR(14));
+	wattroff(win_middle, A_REVERSE);
 	wnoutrefresh(win_middle);
 	doupdate();
 	nodelay(stdscr, FALSE);
