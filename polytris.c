@@ -95,7 +95,6 @@ new_piece(void)
 	return &pieces[rand() % NPIECES * 4];
 }
 
-/* mleft/mright/rleft/rright: simple functions that do what they say */
 void
 mleft(PolytrisGame *pg)
 {
@@ -122,7 +121,6 @@ rright(PolytrisGame *pg)
 	rotate(pg, 0);
 }
 
-/* mdown: move the piece down one line reset timers */
 void
 mdown(PolytrisGame *pg)
 {
@@ -132,7 +130,6 @@ mdown(PolytrisGame *pg)
 	pg->time_until_fall = levels[pg->level % MAXLVL];
 }
 
-/* hold: swaps piece and held_piece */
 void
 hold(PolytrisGame *pg)
 {
@@ -180,7 +177,9 @@ rotate(PolytrisGame *pg, int left)
 	int i;
 	Point pt;
 	Piece *(*rfunc)(Piece *), *p;
-	static Point kicks[] = {{0,0},{1,0},{-1,0},{0,1},{0,-1},{2,0},{-2,0},{0,2},{0,-2}};
+	static Point kicks[] = {
+		{0,0},{1,0},{-1,0},{0,1},{0,-1},{2,0},{-2,0},{0,2},{0,-2}
+	};
 	if(left)
 		rfunc = rotl;
 	else
@@ -275,7 +274,6 @@ polytris_tick(PolytrisGame *pg, int dt)
 	return 1;
 }
 
-/* polytris_init: set our data to their initial values */
 static void
 polytris_init(PolytrisGame *pg)
 {
@@ -290,7 +288,6 @@ polytris_init(PolytrisGame *pg)
 	pg->piece = new_piece();
 }
 
-/* polytris_create: return an allocated and initialized game structure */
 PolytrisGame *
 polytris_create(long seed)
 {
@@ -305,14 +302,12 @@ polytris_create(long seed)
 	return pg;
 }
 
-/* polytris_destroy: give back the memory from our game structure */
 void
 polytris_destroy(PolytrisGame *pg)
 {
 	free(pg);
 }
 
-/* mkpt: make a point from two ints */
 Point
 mkpt(int x, int y)
 {
